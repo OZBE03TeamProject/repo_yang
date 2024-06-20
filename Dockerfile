@@ -11,6 +11,7 @@ ENV PYTHONUNBUFFERED=1
 COPY ./requirements.txt /tmp/requirements.txt
 COPY ./requirements.dev.txt /tmp/requirements.dev.txt
 COPY ./app /app
+COPY ./.flake8 /app/.flake8
 
 # 작업 디렉토리를 /app으로 설정
 WORKDIR /app
@@ -22,12 +23,11 @@ RUN apk add --no-cache curl
 ARG DEV=false
 
 # 패키지 설치 및 이미지 최적화
-RUN python -m venv /py && \
-    /py/bin/pip install --upgrade pip && \
-    apk add --update --no-cache jpeg-dev zlib zlib-dev && \
+RUN apk add --update --no-cache postgresql-client jpeg-dev zlib zlib-dev && \
     apk add --update --no-cache --virtual .tmp-build-deps \
-        build-base musl-dev linux-headers && \
-    /py/bin/pip install --upgrade pip setuptools && \
+        build-base postgresql-dev musl-dev linux-headers && \
+    python -m venv /py && \
+    /py/bin/pip install --upgrade pip setuptools wheel && \
     /py/bin/pip install -r /tmp/requirements.txt && \
     if [ "$DEV" = "true" ]; then /py/bin/pip install -r /tmp/requirements.dev.txt ; fi && \
     rm -rf /tmp && \
@@ -47,5 +47,4 @@ EXPOSE 8000
 USER django-user
 
 # Django 프로젝트 실행
-CMD ["gunicorn", "--bind", "0.0.0.0:8000", "config.wsgi:application", "--workers", "6", "--timeout", "120", "--log-level", "debug"]
-
+CMD ["gunicorn", "--bind", "0.0.0.0:8000", "config.wsgi:application", "--workers", "4", "--timeout", "120", "--log-level", "debug"]
