@@ -15,7 +15,7 @@ class CommandTests(SimpleTestCase):
     """Test commands."""
 
     def test_wait_for_db_ready(self, patched_getitem):
-        """Test waiting for database if database ready."""
+        """스크립트 작동 여부 확인"""
         patched_getitem.return_value = True
 
         call_command('wait_for_db')
@@ -24,7 +24,7 @@ class CommandTests(SimpleTestCase):
 
     @patch('time.sleep')
     def test_wait_for_db_delay(self, patched_sleep, patched_getitem):
-        """Test waiting for database when getting OperationalError."""
+        """Psycopg2 에러 3회 발생 및 OperationalError 2회 발생, 마지막에 True 반환"""
         patched_getitem.side_effect = [Psycopg2OPsycopgpError] * 3 + \
             [OperationalError] * 2 + [True]
 
