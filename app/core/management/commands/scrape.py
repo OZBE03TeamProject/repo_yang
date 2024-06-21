@@ -101,7 +101,7 @@ class KakaoMapScraper:
             f.write(html)
         print("Successfully saved html")
 
-    def scrap(self):
+    def scrap(self, query: str):
         restaurant_fields = RestaurantFields()
 
         Restaurant.objects.all().delete()
@@ -111,10 +111,10 @@ class KakaoMapScraper:
         print("##############페이지 로딩 대기##############")
         time.sleep(5)
 
-        self.driver.find_element(By.ID, "innerQuery").send_keys("구로구 맛집")
+        self.driver.find_element(By.ID, "innerQuery").send_keys(f"{query}")
         time.sleep(1)
         self.driver.find_element(By.ID, "innerQuery").send_keys(Keys.ENTER)
-        print("##############구로구 맛집을 검색했습니다.##############")
+        print(f"##############{query}을 검색했습니다.##############")
         time.sleep(6)
 
         scroll(driver=self.driver)
@@ -180,7 +180,11 @@ class KakaoMapScraper:
 class Command(BaseCommand):
     help = 'Run the KakaoMapScraper to scrape data'
 
+    def add_arguments(self, parser):
+        parser.add_argument('query', type=str, help='Search query for KakaoMap')
+
     def handle(self, *args, **kwargs):
+        query = kwargs['query']
         scraper = KakaoMapScraper()
-        scraper.scrap()
+        scraper.scrap(query)
         self.stdout.write(self.style.SUCCESS('Successfully ran the scraper'))

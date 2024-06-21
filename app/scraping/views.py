@@ -95,6 +95,9 @@ class RestaurantFields:
 class KakaoMapScraper:
 
     def __init__(self):
+        self.driver = None
+
+    def start_driver(self):
         self.driver = init_driver()
 
     def save_html(self, html: str):
@@ -103,19 +106,21 @@ class KakaoMapScraper:
         print("Successfully saved html")
 
     def scraping_view(self, request):
+        self.start_driver()
+        query_set = Restaurant.objects.all()
         restaurant_fields = RestaurantFields()
-
-        Restaurant.objects.all().delete()
 
         url = "https://m.map.kakao.com/"
         self.driver.get(url)
         print("##############페이지 로딩 대기##############")
         time.sleep(5)
 
-        self.driver.find_element(By.ID, "innerQuery").send_keys("구로구 맛집")
+        input_box = self.driver.find_element(By.ID, "innerQuery")
+        query = request.GET.get("query") if request.GET.get("query") else "구로구 맛집"
+        input_box.send_keys(query)
         time.sleep(1)
         self.driver.find_element(By.ID, "innerQuery").send_keys(Keys.ENTER)
-        print("##############구로구 맛집을 검색했습니다.##############")
+        print(f"##############{query}를 검색했습니다.##############")
         time.sleep(6)
 
         scroll(driver=self.driver)
@@ -129,15 +134,23 @@ class KakaoMapScraper:
         restaurants_data = []
         for index, restaurant in enumerate(restaurant_container):
             try:
-                if restaurant.find(class_="tit_g"):
+                if restaurant.find(class_="tit_g") and not query_set.filter(
+                        restaurant_name=restaurant.find(class_="tit_g").text.strip()
+                ).exists():
                     restaurant_fields.restaurant_name = restaurant.find(class_="tit_g").text.strip()
+                else:
+                    print("이미 저장한 가게입니다. ")
+                    continue
 
                 if restaurant.find(class_="txt_g"):
                     restaurant_fields.restaurant_address = restaurant.find(class_="txt_g").text.strip()
 
                 if restaurant.find(class_="txt_num"):
-                    review_text = restaurant.find(class_="txt_num").text.replace('(', '').replace(')', '').strip()
-                    restaurant_fields.review_count = int(review_text) if review_text.isdigit() else 0
+                    review_count_text = restaurant.find(class_="txt_num").text.replace('(', '').replace(')', '').strip()
+                    if review_count_text.isdigit():
+                        restaurant_fields.review_count = int(review_count_text)
+                    else:
+                        restaurant_fields.review_count = 0
 
                 if restaurant.find(class_="txt_ginfo"):
                     restaurant_fields.category = restaurant.find(class_="txt_ginfo").text.strip()
