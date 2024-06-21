@@ -23,6 +23,8 @@ services:
       - DB_PORT=5432
     depends_on:
       - db
+    tmpfs:
+      - /tmp
 
   db:
     image: postgres:13
